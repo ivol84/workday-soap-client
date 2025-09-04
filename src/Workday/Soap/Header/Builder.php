@@ -6,12 +6,16 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 use DOMXPath;
+use GuzzleHttp\Client;
+use ivol\Workday\Soap\SoapClient;
+use ivol\Workday\Soap\Token\OAuth2\RefreshToken;
 use ivol\Workday\Soap\Token\Token;
 use ivol\Workday\Soap\Token\UsernamePasswordToken;
 use ivol\Workday\Soap\Token\UsernameToken;
 use ivol\Workday\Soap\Token\X509AuthenticationToken;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
+use RuntimeException;
 
 class Builder
 {
@@ -27,6 +31,17 @@ class Builder
     const SOAP_HEADER_WSSOAP_PREFIX = 'wssoap';
     const SOAP_TRANSFORMATION_ALGORITHM = 'http://www.w3.org/2000/09/xmldsig#enveloped-signature';
 
+    private $httpClient;
+    /** @var SoapClient */
+    private $soapClient;
+
+    /** @param SoapClient $soapClient */
+    public function __construct(SoapClient $soapClient)
+    {
+        $this->soapClient = $soapClient;
+        $this->httpClient = new Client();
+    }
+
     /**
      * Add authentication headers depends on Token type.
      * @param string $request
@@ -37,8 +52,15 @@ class Builder
      */
     public function addAuthentication($request, Token $token)
     {
-        $method = $token instanceof UsernamePasswordToken ? 'addUsernamePasswordAuthentication' :
-            'addX509Authentication';
+        if ($token instanceof UsernamePasswordToken) {
+            $method = 'addUsernamePasswordAuthentication';
+        } else if ($token instanceof X509AuthenticationToken) {
+            $method = 'addX509Authentication';
+        } else if ($token instanceof RefreshToken) {
+            $method = 'addRefreshTokenAuthentication';
+        } else {
+            throw new RuntimeException("Unsupported token:" . get_class($token));
+        }
         return $this->$method($request, $token);
     }
 
@@ -77,6 +99,30 @@ class Builder
     }
 
     /**
+     * @param $request
+     * @param RefreshToken $refreshToken
+     * @return false|string
+     */
+    public function addRefreshTokenAuthentication($request, RefreshToken $refreshToken)
+    {
+        $response = $this->httpClient->post($refreshToken->getTokenUrl(), [
+            'form_params' => [
+                'client_id' => $refreshToken->getClientId(),
+                'client_secret' => $refreshToken->getClientSecret(),
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken->getRefreshToken()
+            ]
+        ]);
+        $responseArray = json_decode($response->getBody()->getContents(), true);
+        if (!isset($responseArray['access_token'])) {
+            throw new RuntimeException("Cannot get access token from response " . var_export($responseArray, true));
+        }
+        $this->soapClient->addHttpHeaders(['Bearer' => $responseArray['access_token']]);
+
+        return $request;
+    }
+
+    /**
      * @param string $request
      * @param UsernamePasswordToken $token
      * @return false|string
@@ -89,6 +135,11 @@ class Builder
         $securityElement = $this->getSecurityElement($domDocument, $headerElement);
         $this->addUsernameTokenElement($domDocument, $securityElement, $token);
         return $domDocument->saveXML();
+    }
+
+    public function setHttpClient(Client $httpClient)
+    {
+        $this->httpClient = $httpClient;
     }
 
     /**
