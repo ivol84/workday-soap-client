@@ -80,7 +80,7 @@ class BuilderTest extends PHPUnit_Framework_TestCase
         $handlerStack->push(Middleware::history($historyContainer));
         $this->sut->setHttpClient(new Client(['handler' => $handlerStack]));
         $this->client->expects($this->once())->method('addHttpHeaders')->with([
-            'Bearer' => '7c3obrknwd6nnkxv0r64jdpbx'
+            'Authorization' => 'Bearer 7c3obrknwd6nnkxv0r64jdpbx'
         ]);
 
         $this->assertEquals('', $this->sut->addAuthentication('',

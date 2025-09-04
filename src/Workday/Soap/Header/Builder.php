@@ -117,7 +117,7 @@ class Builder
         if (!isset($responseArray['access_token'])) {
             throw new RuntimeException("Cannot get access token from response " . var_export($responseArray, true));
         }
-        $this->soapClient->addHttpHeaders(['Bearer' => $responseArray['access_token']]);
+        $this->soapClient->addHttpHeaders(['Authorization' => 'Bearer ' . $responseArray['access_token']]);
 
         return $request;
     }
