@@ -69,7 +69,7 @@ class SoapClient extends SoapClientBase
                 $this->context,
                 "http",
                 "header",
-                sprintf("%s: %s\r\n", $headerName, $headerName)
+                sprintf("%s: %s\r\n", $headerName, $headerValue)
             );
         }
         return parent::__doRequest($this->requestWithSoapHeaders, $location, $action, $version, $one_way);
