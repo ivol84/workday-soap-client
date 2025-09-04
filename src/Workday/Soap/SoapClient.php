@@ -63,6 +63,7 @@ class SoapClient extends SoapClientBase
 
     public function __doRequest($request, $location, $action, $version, $one_way = 0)
     {
+        $this->requestWithSoapHeaders = $this->token ? $this->builder->addAuthentication($request, $this->token) : $request;
         foreach ($this->headers as $headerName => $headerValue) {
             stream_context_set_option(
                 $this->context,
@@ -71,7 +72,6 @@ class SoapClient extends SoapClientBase
                 sprintf("%s: %s\r\n", $headerName, $headerName)
             );
         }
-        $this->requestWithSoapHeaders = $this->token ? $this->builder->addAuthentication($request, $this->token) : $request;
         return parent::__doRequest($this->requestWithSoapHeaders, $location, $action, $version, $one_way);
     }
 }
