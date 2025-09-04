@@ -42,6 +42,4 @@ class SoapClientTest extends PHPUnit_Framework_TestCase
 
         $sut->__doRequest("", "", "", 0);
     }
-
-
 }
