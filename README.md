@@ -5,6 +5,7 @@
 This library allows authenticating requests passed to WWS. It allows 2 types of authentication:
 * X509 Authentication 
 * UserNameToken authentication
+* OAUTH2 (refresh token flow) authentication
 
 # Usage
 
